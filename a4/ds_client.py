@@ -3,16 +3,16 @@ from ds_protocol import create_json_join, create_json_post, create_json_bio, ext
 import json
 import time
 
-def join(server:str, port:int, username:str,  password:str) -> str:
+def join(server:str, port:int, username:str,  password:str, public_key:str) -> str:
 
     '''
     Sends a join message to server.
     Returns token or None if there is an error.
     '''
 
-    json_msg = create_json_join(username, password)
+    json_msg = create_json_join(username, password, public_key)
     srv_msg = send_json(json_msg, server, port)
-
+    
     tuple_srv_msg = extract_json(srv_msg)
     if tuple_srv_msg.response_type == "error":
         return None

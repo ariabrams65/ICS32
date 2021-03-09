@@ -2,14 +2,14 @@ import time
 from collections import namedtuple
 import json
 
-def create_json_join(username:str, password:str) -> str:
+def create_json_join(username:str, password:str, token:str) -> str:
 
     '''
     Returns JSON formatted string with username and password.
     '''
 
     JSON_msg = "{{\"join\": {{\"username\": \"{}\", \"password\": \"{}\", \"token\":\"{}\"}}}}"
-    JSON_msg = JSON_msg.format(username, password, "")
+    JSON_msg = JSON_msg.format(username, password, token)
     return JSON_msg
 
 def create_json_post(token:str, post:str, timestamp:str) ->str:

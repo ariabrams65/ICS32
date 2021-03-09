@@ -1,4 +1,5 @@
 from pathlib import Path
+from NaClProfile import NaClProfile
 import Profile
 import ds_client
 from OpenWeather import OpenWeather
@@ -241,13 +242,14 @@ def write_post(profile):
     profile.add_post(post)
 
     if input("Would you like to post your message online? (Y/N)\n") == "Y":
-        token = ds_client.join(profile.dsuserver, 2021, profile.username, profile.password)
+        token = ds_client.join(profile.dsuserver, 2021, profile.username, profile.password, profile.public_key)
 
         if token == None:
             print("ERROR: There was an error when trying to join the server")
             return
-
-        if ds_client.send_post(profile.dsuserver, 2021, post.get_entry(), post.get_time(), token) == False:
+        
+        encrypted_post = profile.encrypt_entry(profile.get_posts()[-1].get_entry(), token).decode(encoding='UTF-8')
+        if ds_client.send_post(profile.dsuserver, 2021, encrypted_post, post.get_time(), profile.public_key) == False:
             print("ERROR: There was an error when trying to post your message")
             return
 
@@ -293,13 +295,14 @@ def write_bio(profile):
     profile.bio = bio
 
     if input("Would you like to post your bio online? (Y/N)\n") == "Y":
-        token = ds_client.join(profile.dsuserver, 2021, profile.username, profile.password)
+        token = ds_client.join(profile.dsuserver, 2021, profile.username, profile.password, profile.public_key)
 
         if token == None:
             print("ERROR: There was an error when trying to join the server")
             return
 
-        if ds_client.send_bio(profile.dsuserver, 2021, profile.bio, token) == False:
+        encrypted_bio = profile.encrypt_entry(profile.bio , token).decode(encoding='UTF-8')
+        if ds_client.send_bio(profile.dsuserver, 2021, encrypted_bio, profile.public_key) == False:
             print("ERROR: There was an error when trying to post your bio")
             return
 
@@ -315,7 +318,7 @@ def profile_is_loaded(profile) -> bool:
     
 def main():
     
-    profile = Profile.Profile()
+    profile = NaClProfile()
     profile_path = ""
 
     command_info()
@@ -349,13 +352,14 @@ def main():
         if command_tokens[0] == 'L':
             list_files(path, command_tokens)
         elif command_tokens[0] == 'C':
-            profile = Profile.Profile() #resets profile to remove any existing profile 
+            profile = NaClProfile() #resets profile to remove any existing profile 
             profile_path = create_file(path, command_tokens, profile)
         elif command_tokens[0] == 'D':
             delete_file(path, command_tokens)
         elif command_tokens[0] == 'R':
             read_file(path, command_tokens)
         elif command_tokens[0] == 'O':
+            profile = NaClProfile() #resets profile to remove any existing profile
             profile_path = load_file(path, command_tokens, profile)
         else:
             print("ERROR")
