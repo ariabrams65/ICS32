@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, filedialog
+bfrom tkinter import ttk, filedialog
 from Profile import Profile, Post
 from NaClProfile import NaClProfile
 
@@ -27,7 +27,7 @@ class Body(tk.Frame):
     def node_select(self, event):
         index = int(self.posts_tree.selection()[0])-1 #selections are not 0-based, so subtract one.
         entry = self._posts[index].entry
-        self.set_text_entry(entry)
+##        self.set_text_entry(entry)
     
     """
     Returns the text that is currently displayed in the entry_editor widget.
@@ -42,7 +42,9 @@ class Body(tk.Frame):
     def set_text_entry(self, text:str):
         # TODO: Write code to that deletes all current text in the self.entry_editor widget
         # and inserts the value contained within the text parameter.
-        pass
+        self.entry_editor.delete(0.0, 'end')
+        self.entry_editor.insert(0.0, text)
+
     
     """
     Populates the self._posts attribute with posts from the active DSU file.
@@ -53,7 +55,15 @@ class Body(tk.Frame):
         # HINT: You will have to write the delete code yourself, but you can take 
         # advantage of the self.insert_posttree method for updating the posts_tree
         # widget.
-        pass
+
+        self._posts = posts
+        i = len(self._posts)
+        
+        for post in self._posts:
+            self._insert_post_tree(i, post)
+            i -= 1
+
+        
 
     """
     Inserts a single post to the post_tree widget.
@@ -115,10 +125,11 @@ A subclass of tk.Frame that is responsible for drawing all of the widgets
 in the footer portion of the root frame.
 """
 class Footer(tk.Frame):
-    def __init__(self, root, save_callback=None):
+    def __init__(self, root, save_callback=None, online_callback=None):
         tk.Frame.__init__(self, root)
         self.root = root
         self._save_callback = save_callback
+        self._online_callback = online_callback
         # IntVar is a variable class that provides access to special variables
         # for Tkinter widgets. is_online is used to hold the state of the chk_button widget.
         # The value assigned to is_online when the chk_button widget is changed by the user
@@ -137,7 +148,8 @@ class Footer(tk.Frame):
         # TODO: Add code that implements a callback to the chk_button click event.
         # The callback should support a single parameter that contains the value
         # of the self.is_online widget variable.
-        pass
+        if self._online_callback is not None:
+            self._online_callback(self.is_online.get())
 
     """
     Calls the callback function specified in the save_callback class attribute, if
@@ -177,6 +189,8 @@ class MainApp(tk.Frame):
     def __init__(self, root):
         tk.Frame.__init__(self, root)
         self.root = root
+        self._is_online = False
+        self._profile_filename =  None
 
         # Initialize a new NaClProfile and assign it to a class attribute.
         self._current_profile = NaClProfile()
@@ -190,7 +204,11 @@ class MainApp(tk.Frame):
     """
     def new_profile(self):
         filename = tk.filedialog.asksaveasfile(filetypes=[('Distributed Social Profile', '*.dsu')])
-        profile_filename = filename.name
+        self._profile_filename = filename.name
+
+        self._current_profile = NaClProfile()
+        self._current_profile.generate_keypair()
+        self.body.reset_ui()
 
         # TODO Write code to perform whatever operations are necessary to prepare the UI for
         # a new DSU file.
@@ -203,6 +221,15 @@ class MainApp(tk.Frame):
     def open_profile(self):
         filename = tk.filedialog.askopenfile(filetypes=[('Distributed Social Profile', '*.dsu')])
 
+        self._profile_filename = filename.name
+        self._current_profile = NaClProfile()
+        self._current_profile.load_profile(self._profile_filename)
+        self._current_profile.import_keypair(self._current_profile.keypair)
+
+        self.body.reset_ui()
+
+        self.body.set_posts(self._current_profile.get_posts())
+                                             
         # TODO: Write code to perform whatever operations are necessary to prepare the UI for
         # an existing DSU file.
         # HINT: You will probably need to do things like load a profile, import encryption keys 
@@ -240,8 +267,11 @@ class MainApp(tk.Frame):
         # is checked.
         if value == 1:
             self.footer.set_status("Online")
+            self._is_online = True
         else:
             self.footer.set_status("Offline")
+            self._is_online = False
+
     
     """
     Call only once, upon initialization to add widgets to root frame
@@ -267,7 +297,7 @@ class MainApp(tk.Frame):
         # TODO: Add a callback for detecting changes to the online checkbox widget in the Footer class. Follow
         # the conventions established by the existing save_callback parameter.
         # HINT: There may already be a class method that serves as a good callback function!
-        self.footer = Footer(self.root, save_callback=self.save_profile)
+        self.footer = Footer(self.root, save_callback=self.save_profile, online_callback=self.online_changed)
         self.footer.pack(fill=tk.BOTH, side=tk.BOTTOM)
 
 if __name__ == "__main__":
