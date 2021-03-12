@@ -1,7 +1,8 @@
 import tkinter as tk
-bfrom tkinter import ttk, filedialog
+from tkinter import ttk, filedialog
 from Profile import Profile, Post
 from NaClProfile import NaClProfile
+import ds_client
 
 """
 A subclass of tk.Frame that is responsible for drawing all of the widgets
@@ -57,11 +58,11 @@ class Body(tk.Frame):
         # widget.
 
         self._posts = posts
-        i = len(self._posts)
+        i = 1
         
         for post in self._posts:
             self._insert_post_tree(i, post)
-            i -= 1
+            i += 1
 
         
 
@@ -207,6 +208,9 @@ class MainApp(tk.Frame):
         self._profile_filename = filename.name
 
         self._current_profile = NaClProfile()
+        self._current_profile.dsuserver = "168.235.86.101"
+        self._current_profile.username = "final_user34"
+        self._current_profile.password = "password"
         self._current_profile.generate_keypair()
         self.body.reset_ui()
 
@@ -252,8 +256,30 @@ class MainApp(tk.Frame):
         # clear the editor_entry UI for a new post.
         # This might also be a good place to check if the user has selected the online
         # checkbox and if so send the message to the server.
-        pass
 
+        post = Post(self.body.get_text_entry())
+        self.body.insert_post(post)
+        self._current_profile.add_post(post)
+        self._current_profile.save_profile(self._profile_filename)
+        self.body.set_text_entry("")
+
+        if self._is_online is True:
+            self._publish(post)
+        
+    def _publish(self, post:Post):
+        p = self._current_profile
+
+        token = ds_client.join(p.dsuserver, 2021, p.username, p.password, p.public_key)
+
+        if token == None:
+            print("ERROR: There was an error when trying to join the server")
+            return
+
+        encrypted_post = p.encrypt_entry(p.get_posts()[-1].get_entry(), token).decode(encoding='UTF-8')
+        if ds_client.send_post(p.dsuserver, 2021, encrypted_post, post.get_time(), p.public_key) == False:
+            print("ERROR: There was an error when trying to post your message")
+            return
+    
     """
     A callback function for responding to changes to the online chk_button.
     """
